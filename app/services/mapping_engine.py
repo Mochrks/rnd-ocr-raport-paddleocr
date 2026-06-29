@@ -136,10 +136,11 @@ def get_best_match(
                     logger.debug(f"  [Exact-Alias] '{raw_name}' → '{ms['subject_name']}' via '{alias}'")
                     return ms
 
-    # ── Pass 1.5: Exact alias match untuk Lain-Lain ──
-    # (HARUS exact — Lain-Lain tidak pernah lewat fuzzy)
+    # ── Pass 1.5: Exact alias match untuk Lain-Lain & Agama ──
+    # (HARUS exact — Lain-Lain dan Agama tidak pernah lewat fuzzy)
     for ms in master_subjects:
-        if 'Lain' not in ms['subject_name']:
+        is_strict = 'Lain' in ms['subject_name'] or 'Agama' in ms['subject_name']
+        if not is_strict:
             continue
         for alias in ms.get("aliases", []):
             alias_norm = normalize_text(alias)
@@ -147,27 +148,28 @@ def get_best_match(
                 continue
             # Exact substring match
             if alias_norm in raw_normalized or raw_normalized in alias_norm:
-                logger.debug(f"  [Exact-LainLain] '{raw_name}' → '{ms['subject_name']}' via '{alias}'")
+                logger.debug(f"  [Exact-Strict] '{raw_name}' → '{ms['subject_name']}' via '{alias}'")
                 return ms
             # Exact word set match untuk alias panjang
             alias_words = set(re.findall(r'\w+', alias_norm))
             if len(alias_words) >= 2 and alias_words.issubset(raw_words):
-                logger.debug(f"  [Word-LainLain] '{raw_name}' → '{ms['subject_name']}' via '{alias}'")
+                logger.debug(f"  [Word-Strict] '{raw_name}' → '{ms['subject_name']}' via '{alias}'")
                 return ms
 
     # ── Pass 2: Fuzzy match (RapidFuzz) — HANYA untuk mapel utama ──
     # Bangun choices: normalized_alias/name → master_subject
     choices: Dict[str, Dict] = {}
     for ms in master_subjects:
-        # Skip Lain-Lain dari fuzzy matching (sudah dihandle di Pass 1.5)
-        if 'Lain' in ms['subject_name']:
+        # Skip Lain-Lain dan Agama dari fuzzy matching (sudah dihandle di Pass 1.5)
+        is_strict = 'Lain' in ms['subject_name'] or 'Agama' in ms['subject_name']
+        if is_strict:
             continue
         subj_norm = normalize_text(ms["subject_name"])
-        if subj_norm:
+        if subj_norm and len(subj_norm) > 3:
             choices[subj_norm] = ms
         for alias in ms.get("aliases", []):
             alias_norm = normalize_text(alias)
-            if alias_norm:
+            if alias_norm and len(alias_norm) > 3:
                 choices[alias_norm] = ms
 
     if not choices:
@@ -393,13 +395,13 @@ def _extract_grade_from_row(row: List[Dict], score_zone_start: float) -> Tuple[O
 
     # Check deskripsi multi-word dulu: "Amat Baik", "Sangat Baik", etc.
     desc_patterns = [
-        ('amat baik', 'Amat Baik'),
-        ('sangat baik', 'Sangat Baik'),
-        ('baik sekali', 'Baik Sekali'),
-        ('baik', 'Baik'),
-        ('cukup baik', 'Cukup Baik'),
-        ('cukup', 'Cukup'),
-        ('kurang', 'Kurang'),
+        ('amat baik', 'A'),
+        ('sangat baik', 'A'),
+        ('baik sekali', 'A'),
+        ('baik', 'B'),
+        ('cukup baik', 'C'),
+        ('cukup', 'C'),
+        ('kurang', 'D'),
     ]
     for pattern, label in desc_patterns:
         if pattern in right_text_lower:
@@ -535,9 +537,7 @@ def _extract_attendance_value_from_row(
     Nilai biasanya angka kecil 0-99 di kolom kanan.
     Handle: "2 hari", "- Hari", "2", "-", "–"
     """
-    # Cari nilai di kolom kanan
-    right_values = [w for w in row if w['x'] >= score_zone_start]
-    all_values = right_values if right_values else row
+    all_values = row
 
     # Gabungkan teks kanan
     right_text = " ".join(w['text'] for w in all_values).strip().lower()

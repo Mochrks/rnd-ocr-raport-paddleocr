@@ -73,10 +73,9 @@ def detect_column_positions(rows: List[List[Dict]]) -> Dict[str, Any]:
             "nilai angka",
             "nilai rapor",
             "nilai tulis",
-            "pencapaian",
-            "capaian kompetensi",
             "rata rata",
             "perolehan",
+            "nilai",
         ],
         "grade_x": ["huruf", "predikat"],
     }
@@ -89,6 +88,11 @@ def detect_column_positions(rows: List[List[Dict]]) -> Dict[str, Any]:
         row_y = row[0]["y"]
         for word in row:
             wn = normalize_text(word["text"])
+            
+            # Prevent false positives with school header info
+            if "keahlian" in wn or "program" in wn:
+                continue
+
             for kw in header_map["subject_x"]:
                 if kw in wn and len(wn) <= len(kw) + 20:
                     cols["subject_x"] = float(word["x"])

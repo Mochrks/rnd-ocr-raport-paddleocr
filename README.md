@@ -140,6 +140,10 @@ Edit `.env` as needed. All settings have sensible defaults — the app works wit
 # Development (auto-reload)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
+#or
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+
 # Production
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 ```

@@ -103,9 +103,9 @@ MASTER_SUBJECTS: list[MasterSubject] = [
             "Ilmu Alam",
             "Science",
             "Sains",
-            "Fisika",             # SMK: Fisika maps to IPA
-            "Kimia",              # SMK: Kimia maps to IPA
-            "Biologi",            # SMK: Biologi maps to IPA
+            # "Fisika",             # SMK: Fisika maps to IPA
+            # "Kimia",              # SMK: Kimia maps to IPA
+            # "Biologi",            # SMK: Biologi maps to IPA
             "Ilmu Peng Alam",
             "Ilmu Peng. Alam",
         ],
@@ -119,10 +119,10 @@ MASTER_SUBJECTS: list[MasterSubject] = [
             "Ilmu Pengetahuan Sosial",
             "Ilmu Sosial",
             "Social Science",
-            "Sejarah",
-            "Geografi",
-            "Ekonomi",
-            "Sosiologi",
+            # "Sejarah",
+            # "Geografi",
+            # "Ekonomi",
+            # "Sosiologi",
             "Ilmu Peng Sosial",
             "Ilmu Peng. Sosial",
         ],

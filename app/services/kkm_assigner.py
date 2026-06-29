@@ -71,26 +71,11 @@ def _assign_without_kkm_header(
     candidates: List[Dict], x_spread: float
 ) -> Tuple[Optional[float], Optional[float]]:
     """Assign when no KKM column header was detected."""
+    # Rule: If there's no KKM column detected, never assign a KKM score.
     if len(candidates) == 1:
         return None, candidates[0]["value"]
 
-    if x_spread > _KKM_INFER_X_SPREAD:
-        # Wide spread → most likely an undetected KKM column
-        sorted_x = sorted(candidates, key=lambda c: c["x"])
-        kkm_val = sorted_x[0]["value"]
-        score_val = sorted_x[-1]["value"]
-        if kkm_val > score_val + 5:
-            # Sanity: KKM should not exceed score significantly
-            logger.debug(
-                f"  [KKM-Infer] Skipped: kkm={kkm_val} > score={score_val}"
-            )
-            return None, score_val
-        logger.debug(
-            f"  [KKM-Infer] x_spread={x_spread:.0f} → KKM={kkm_val}, Score={score_val}"
-        )
-        return kkm_val, score_val
-
-    # Close together → likely a split decimal; take max as score
+    # Take the maximum value as the score
     best = max(candidates, key=lambda c: c["value"])
     return None, best["value"]
 
@@ -102,38 +87,82 @@ def _assign_with_kkm_header(
     score_x: Optional[float],
 ) -> Tuple[Optional[float], Optional[float]]:
     """Assign when a KKM column header was detected."""
-    if len(candidates) == 1:
-        c = candidates[0]
-        if kkm_x is not None and score_x is not None:
-            if abs(c["x"] - kkm_x) < abs(c["x"] - score_x):
-                return c["value"], None
-        return None, c["value"]
-
-    # 2+ candidates with both column X positions known
     if kkm_x is not None and score_x is not None:
-        kkm_bucket, score_bucket = [], []
+        best_kkm = None
+        best_score = None
+        min_kkm_dist = float('inf')
+        min_score_dist = float('inf')
+
         for c in candidates:
-            if abs(c["x"] - kkm_x) <= abs(c["x"] - score_x):
-                kkm_bucket.append(c)
+            dist_to_kkm = abs(c["x"] - kkm_x)
+            dist_to_score = abs(c["x"] - score_x)
+
+            if dist_to_kkm < dist_to_score:
+                if dist_to_kkm < min_kkm_dist:
+                    min_kkm_dist = dist_to_kkm
+                    best_kkm = c
             else:
-                score_bucket.append(c)
+                if dist_to_score < min_score_dist:
+                    min_score_dist = dist_to_score
+                    best_score = c
 
-        if not kkm_bucket or not score_bucket:
-            return _fallback_sort_assign(candidates)
+        # Tolerance: must be within 100px of the column header to be considered part of it
+        TOLERANCE = 100.0
+        kkm_val = best_kkm["value"] if best_kkm and min_kkm_dist < TOLERANCE else None
+        score_val = best_score["value"] if best_score and min_score_dist < TOLERANCE else None
 
-        kkm_val = sorted(kkm_bucket, key=lambda c: c["x"])[0]["value"]
-        score_val = sorted(score_bucket, key=lambda c: c["x"])[-1]["value"]
-        if kkm_val > score_val + 5:
+        # Fallback if tolerance strictly failed both (rare, usually means columns are severely misaligned)
+        if kkm_val is None and score_val is None:
+            kkm_val = best_kkm["value"] if best_kkm else None
+            score_val = best_score["value"] if best_score else None
+
+        # Sanity check: KKM should not significantly exceed score (if both are present)
+        if kkm_val is not None and score_val is not None and kkm_val > score_val + 5:
             kkm_val, score_val = score_val, kkm_val
+
         return kkm_val, score_val
 
+    # If only kkm_x is known but score_x is not
+    if kkm_x is not None:
+        return _fallback_sort_assign_with_kkm_only(candidates, kkm_x)
+
     return _fallback_sort_assign(candidates)
+
+
+def _fallback_sort_assign_with_kkm_only(
+    candidates: List[Dict], kkm_x: float
+) -> Tuple[Optional[float], Optional[float]]:
+    """Assign when only KKM column header is known."""
+    best_kkm = None
+    min_dist = float('inf')
+    for c in candidates:
+        dist = abs(c["x"] - kkm_x)
+        if dist < min_dist:
+            min_dist = dist
+            best_kkm = c
+
+    TOLERANCE = 100.0
+    kkm_val = best_kkm["value"] if best_kkm and min_dist < TOLERANCE else None
+
+    # Remaining candidates: take the max as the score
+    rem_candidates = [c for c in candidates if c != best_kkm] if kkm_val is not None else candidates
+    
+    score_val = None
+    if rem_candidates:
+        score_val = max(rem_candidates, key=lambda c: c["value"])["value"]
+
+    if kkm_val is not None and score_val is not None and kkm_val > score_val + 5:
+        kkm_val, score_val = score_val, kkm_val
+
+    return kkm_val, score_val
 
 
 def _fallback_sort_assign(
     candidates: List[Dict],
 ) -> Tuple[Optional[float], Optional[float]]:
-    """Fallback: leftmost = KKM, rightmost = Score."""
+    """Fallback: leftmost = KKM, rightmost = Score (only when headers are totally unknown)."""
+    if len(candidates) == 1:
+        return None, candidates[0]["value"]
     sorted_x = sorted(candidates, key=lambda c: c["x"])
     kkm_val = sorted_x[0]["value"]
     score_val = sorted_x[-1]["value"]

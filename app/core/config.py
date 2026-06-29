@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     pdf_render_scale: float = 2.0
 
     # ── Subject Matching ───────────────────────────────────────────────────
-    fuzzy_match_threshold: int = 60
+    fuzzy_match_threshold: int = 70
     y_cluster_tolerance: int = 20
     score_zone_fallback_ratio: float = 0.35
 
