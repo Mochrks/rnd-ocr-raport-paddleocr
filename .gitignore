@@ -1,0 +1,46 @@
+# ─── Python ───────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ─── Virtual Environment ──────────────────────────
+venv/
+env/
+.venv/
+ENV/
+
+# ─── Environment Variables ────────────────────────
+.env
+# Keep .env.example in version control
+
+# ─── IDE / Editor ─────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Uploads (runtime) ────────────────────────────
+uploads/
+# Keep tests/fixtures/sample_reports/ in version control
+
+# ─── Logs ─────────────────────────────────────────
+logs/
+*.log
+
+# ─── PaddleOCR Model Cache ────────────────────────
+# PaddleOCR downloads models to ~/.paddleocr/ by default — not a repo concern
+inference/
+
+# ─── Pytest ───────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/

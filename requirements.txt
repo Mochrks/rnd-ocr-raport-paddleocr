@@ -1,0 +1,12 @@
+fastapi[all]
+uvicorn[standard]
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+python-multipart>=0.0.9
+paddlepaddle==3.2.0
+paddleocr
+opencv-python-headless>=4.9.0
+rapidfuzz==3.10.1
+pandas>=2.2.0
+lxml>=5.2.0
+pymupdf>=1.24.0
