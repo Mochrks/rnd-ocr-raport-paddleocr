@@ -36,7 +36,7 @@ def _get_ocr_engine() -> PaddleOCR:
     if _ocr_engine is None:
         logger.info("Initializing PaddleOCR engine...")
         _ocr_engine = PaddleOCR(
-            use_textline_orientation=settings.ocr_use_textline_orientation,
+            use_angle_cls=False,
             lang=settings.ocr_lang,
             text_det_thresh=settings.ocr_det_thresh,
             text_det_box_thresh=settings.ocr_box_thresh,

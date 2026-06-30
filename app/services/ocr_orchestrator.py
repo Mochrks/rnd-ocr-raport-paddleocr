@@ -111,26 +111,31 @@ def _process_pdf(pdf_path: str, master_subjects: List[Dict]) -> Dict:
 
 
 def _process_single_image(image_path: str, master_subjects: List[Dict]) -> Dict:
-    """Run both extraction modes and return the better result."""
-    # Mode 1: Table structure
-    table_subjects: List[Dict] = []
-    try:
-        table_subjects = extract_via_table_structure(image_path, master_subjects)
-        logger.info(f"Mode 1 (Table): {len(table_subjects)} subjects")
-    except Exception as exc:
-        logger.warning(f"Mode 1 failed: {exc}")
-
-    # Mode 2: Raw OCR
+    """Run extraction modes (Raw OCR first, fallback to Table)."""
+    # Mode 2: Raw OCR (Fast and accurate)
     raw_result: Dict = {"subjects": [], "personality": None, "attendance": None}
     try:
         raw_result = extract_via_raw_ocr(image_path, master_subjects)
-        logger.info(f"Mode 2 (Raw): {len(raw_result['subjects'])} subjects")
+        logger.info(f"Mode 2 (Raw): {len(raw_result.get('subjects', []))} subjects")
     except Exception as exc:
         logger.warning(f"Mode 2 failed: {exc}")
 
     raw_subjects = raw_result.get("subjects", [])
 
-    # Prefer table mode when it finds more subjects (and at least 3)
+    # If Raw OCR succeeded, return immediately
+    if len(raw_subjects) >= 3:
+        logger.info(f"=== Using Raw results ({len(raw_subjects)} subjects) ===")
+        return raw_result
+
+    # Mode 1: Table structure (Slow fallback)
+    table_subjects: List[Dict] = []
+    try:
+        logger.info("Raw OCR found < 3 subjects, falling back to Mode 1 (Table)...")
+        table_subjects = extract_via_table_structure(image_path, master_subjects)
+        logger.info(f"Mode 1 (Table): {len(table_subjects)} subjects")
+    except Exception as exc:
+        logger.warning(f"Mode 1 failed: {exc}")
+
     if len(table_subjects) >= len(raw_subjects) and len(table_subjects) >= 3:
         logger.info(f"=== Using Table results ({len(table_subjects)} subjects) ===")
         return {
@@ -138,6 +143,7 @@ def _process_single_image(image_path: str, master_subjects: List[Dict]) -> Dict:
             "personality": raw_result.get("personality"),
             "attendance": raw_result.get("attendance"),
         }
+
     if raw_subjects:
         logger.info(f"=== Using Raw results ({len(raw_subjects)} subjects) ===")
         return raw_result
