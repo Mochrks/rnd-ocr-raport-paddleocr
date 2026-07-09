@@ -36,12 +36,22 @@ def _get_ocr_engine() -> PaddleOCR:
     if _ocr_engine is None:
         logger.info("Initializing PaddleOCR engine...")
         _ocr_engine = PaddleOCR(
-            use_angle_cls=False,
             lang=settings.ocr_lang,
             text_det_thresh=settings.ocr_det_thresh,
             text_det_box_thresh=settings.ocr_box_thresh,
+            enable_mkldnn=settings.ocr_use_mkldnn,
+            cpu_threads=settings.ocr_cpu_threads,
+            # Performance: disable unnecessary models for report cards
+            use_doc_orientation_classify=False,  # report cards are always upright
+            use_doc_unwarping=False,             # report cards are flat scans
+            use_textline_orientation=False,      # text is always horizontal
+            # Limit detection resolution for faster inference
+            text_det_limit_side_len=960,
         )
-        logger.info("PaddleOCR engine ready.")
+        logger.info(
+            f"PaddleOCR engine ready | mkldnn={settings.ocr_use_mkldnn} "
+            f"| threads={settings.ocr_cpu_threads}"
+        )
     return _ocr_engine
 
 
@@ -55,6 +65,8 @@ def _get_table_engine() -> PPStructureV3:
         _table_engine = PPStructureV3(
             use_table_recognition=True,
             lang=settings.ocr_lang,
+            enable_mkldnn=settings.ocr_use_mkldnn,
+            cpu_threads=settings.ocr_cpu_threads,
         )
         logger.info("PPStructure engine ready.")
     return _table_engine
@@ -70,5 +82,8 @@ def warmup_engines() -> None:
     """
     logger.info("Warming up OCR engines...")
     _get_ocr_engine()
-    _get_table_engine()
+    try:
+        _get_table_engine()
+    except Exception as exc:
+        logger.warning(f"Table engine warmup failed (will retry on demand): {exc}")
     logger.info("OCR engines warmed up and ready.")

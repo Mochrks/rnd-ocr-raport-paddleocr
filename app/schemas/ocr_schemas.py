@@ -60,6 +60,13 @@ class AttendanceData(BaseModel):
 
 # ── Primary Response ───────────────────────────────────────────────────────
 
+class OCRUploadResponse(BaseModel):
+    """Response returned immediately after upload (202 Accepted)."""
+    documentId: str
+    status: str = "PROCESSING"
+    message: str = "Document uploaded successfully and queued for OCR processing."
+
+
 class OCRResultResponse(BaseModel):
     """
     Full OCR extraction result — the main response body for POST /report/upload.

@@ -103,14 +103,24 @@ def extract_via_raw_ocr(image_path: str, master_subjects: List[Dict]) -> Dict:
     Returns:
         Dict with keys: subjects (list), personality (dict|None), attendance (dict|None)
     """
+    import time as _time
+
+    t0 = _time.perf_counter()
+
     engine = _get_ocr_engine()
     preprocessed = preprocess_image(image_path)
+
+    t1 = _time.perf_counter()
+    logger.info(f"  ⏱ Preprocessing: {t1 - t0:.2f}s")
 
     try:
         result = engine.ocr(preprocessed)
     except Exception as exc:
         logger.error(f"PaddleOCR.ocr() error: {exc}", exc_info=True)
         return {"subjects": [], "personality": None, "attendance": None}
+
+    t2 = _time.perf_counter()
+    logger.info(f"  ⏱ OCR inference: {t2 - t1:.2f}s")
 
     if not result or (isinstance(result, list) and (not result[0] or result[0] is None)):
         logger.warning("PaddleOCR returned no results")
@@ -136,6 +146,11 @@ def extract_via_raw_ocr(image_path: str, master_subjects: List[Dict]) -> Dict:
     subjects = extract_subjects_from_rows(rows, master_subjects, cols, score_zone_start, img_width)
     personality = extract_personality(rows, score_zone_start)
     attendance = extract_attendance(rows, score_zone_start)
+
+    t3 = _time.perf_counter()
+    logger.info(
+        f"  ⏱ Post-processing: {t3 - t2:.2f}s | Total: {t3 - t0:.2f}s"
+    )
 
     logger.info(
         f"Raw mode: {len(subjects)} subjects | "

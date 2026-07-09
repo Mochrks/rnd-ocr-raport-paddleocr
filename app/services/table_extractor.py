@@ -70,30 +70,48 @@ def extract_via_table_structure(
         logger.warning(f"Table mode: cannot read image '{image_path}'")
         return []
 
-    preprocessed = preprocess_image(image_path)
     results: List[Dict] = []
     seen: set = set()
 
-    for attempt_img, label in [(raw_img, "raw"), (preprocessed, "preprocessed")]:
+    # Try raw image first (fast path — no preprocessing needed)
+    try:
+        for block in engine(raw_img):
+            if block.get("type") != "table":
+                continue
+            html = block.get("res", {}).get("html", "")
+            if not html:
+                continue
+            logger.info(f"PPStructure [raw]: table HTML = {len(html)} chars")
+            try:
+                dfs = pd.read_html(StringIO(html))
+            except Exception as exc:
+                logger.warning(f"pd.read_html failed [raw]: {exc}")
+                continue
+            for df in dfs:
+                _extract_from_dataframe(df, master_subjects, results, seen)
+    except Exception as exc:
+        logger.warning(f"PPStructure [raw] error: {exc}")
+
+    # Only preprocess and retry if raw yielded no results (lazy preprocessing)
+    if not results:
         try:
-            for block in engine(attempt_img):
+            preprocessed = preprocess_image(image_path)
+            for block in engine(preprocessed):
                 if block.get("type") != "table":
                     continue
                 html = block.get("res", {}).get("html", "")
                 if not html:
                     continue
-                logger.info(f"PPStructure [{label}]: table HTML = {len(html)} chars")
+                logger.info(f"PPStructure [preprocessed]: table HTML = {len(html)} chars")
                 try:
                     dfs = pd.read_html(StringIO(html))
                 except Exception as exc:
-                    logger.warning(f"pd.read_html failed [{label}]: {exc}")
+                    logger.warning(f"pd.read_html failed [preprocessed]: {exc}")
                     continue
                 for df in dfs:
                     _extract_from_dataframe(df, master_subjects, results, seen)
-            if results:
-                break
         except Exception as exc:
-            logger.warning(f"PPStructure [{label}] error: {exc}")
+            logger.warning(f"PPStructure [preprocessed] error: {exc}")
 
     logger.info(f"Table mode: {len(results)} subjects found")
     return results

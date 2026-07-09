@@ -45,17 +45,28 @@ class Settings(BaseSettings):
     # Set to True to initialize OCR engines at server startup (eliminates
     # first-request cold start but adds ~5–15s to boot time).
     ocr_warmup_on_startup: bool = False
+    # Performance: enable Intel MKLDNN acceleration for CPU inference
+    ocr_use_mkldnn: bool = True
+    # Number of CPU threads for PaddlePaddle inference
+    ocr_cpu_threads: int = 4
 
     # ── Image Processing ───────────────────────────────────────────────────
     # Set False to skip denoising for high-quality digital PDFs
     preprocessing_denoise_enabled: bool = True
     # DPI multiplier when rendering PDF pages to images
-    pdf_render_scale: float = 2.0
+    pdf_render_scale: float = 1.5
+    # Maximum image width (px) — images wider than this are downscaled
+    image_max_width: int = 1200
+    # Maximum total pixel count — images larger are downscaled proportionally
+    image_max_pixels: int = 2_000_000
 
     # ── Subject Matching ───────────────────────────────────────────────────
     fuzzy_match_threshold: int = 70
     y_cluster_tolerance: int = 20
     score_zone_fallback_ratio: float = 0.35
+
+    # ── Redis / Celery Task Queue ──────────────────────────────────────────
+    redis_url: str = "redis://localhost:6379/0"
 
     # ── Logging ────────────────────────────────────────────────────────────
     log_level: str = "INFO"

@@ -21,7 +21,7 @@ from typing import Dict, List
 
 from app.core.logging import PhaseLogger
 from app.domain.constants import MASTER_SUBJECTS
-from app.infrastructure.storage.document_store import DocumentStore, document_store
+from app.api.deps import get_document_store
 from app.services.ocr_orchestrator import perform_ocr_and_extract_full
 
 logger = logging.getLogger(__name__)
@@ -34,8 +34,8 @@ def run_ocr_pipeline(document_id: str, image_path: str) -> None:
     Reads the image, runs OCR extraction, computes timing, and updates
     the document record in the store with the result (SUCCESS or FAILED).
 
-    This function is synchronous and runs in the FastAPI request handler.
-    For async/background processing, wrap it in asyncio.run_in_executor().
+    This function is synchronous and runs in a thread pool via
+    asyncio.run_in_executor() from the FastAPI request handler.
 
     Args:
         document_id: The document ID created before upload (e.g. "DOC1A2B3C4").
@@ -45,8 +45,10 @@ def run_ocr_pipeline(document_id: str, image_path: str) -> None:
     start_time = time.perf_counter()
 
     try:
-        with phase.time("OCR pipeline"):
+        with phase.time("OCR pipeline (total)"):
             full_result = perform_ocr_and_extract_full(image_path, MASTER_SUBJECTS)
+
+        document_store = get_document_store()
 
         subjects = full_result.get("subjects", [])
         personality = full_result.get("personality")
@@ -62,7 +64,7 @@ def run_ocr_pipeline(document_id: str, image_path: str) -> None:
         )
 
         logger.info(
-            f"[{document_id}] Pipeline complete | "
+            f"[{document_id}] ✅ Pipeline complete | "
             f"subjects={len(subjects)} | "
             f"personality={'yes' if personality else 'no'} | "
             f"attendance={'yes' if attendance else 'no'} | "
@@ -71,12 +73,14 @@ def run_ocr_pipeline(document_id: str, image_path: str) -> None:
 
     except Exception as exc:
         processing_time = round(time.perf_counter() - start_time, 2)
+        document_store = get_document_store()
         document_store.mark_failed(
             document_id=document_id,
             error=str(exc),
             processing_time=processing_time,
         )
         logger.error(
-            f"[{document_id}] Pipeline FAILED | elapsed={processing_time}s | error={exc}",
+            f"[{document_id}] ❌ Pipeline FAILED | elapsed={processing_time}s | error={exc}",
             exc_info=True,
         )
+

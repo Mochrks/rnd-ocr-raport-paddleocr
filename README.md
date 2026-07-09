@@ -1,10 +1,10 @@
-# 📄 OCR Raport — Indonesian School Report Card Scanner
+# OCR Raport — Indonesian School Report Card Scanner
 
 A production-quality REST API for extracting academic data from Indonesian school report cards (Raport) using PaddleOCR. Supports both digital PDFs and scanned/handwritten report cards.
 
 ---
 
-## ✨ Features
+## Features
 
 - **Dual-mode OCR**: PPStructure table recognition (Mode 1) with Y-clustering fallback (Mode 2)
 - **Subject extraction**: Matches 12+ standard subjects including OCR typo variants
@@ -16,7 +16,7 @@ A production-quality REST API for extracting academic data from Indonesian schoo
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 Presentation   →   app/api/v1/endpoints/      HTTP routing only
@@ -28,7 +28,7 @@ Infrastructure →   app/infrastructure/        PaddleOCR engine, preprocessor, 
 
 ---
 
-## 📁 Folder Structure
+## Folder Structure
 
 ```
 backend-paddleocr/
@@ -84,7 +84,7 @@ backend-paddleocr/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -152,7 +152,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 
 ---
 
-## ⚙️ Environment Variables
+## Environment Variables
 
 | Variable                        | Default   | Description                              |
 | ------------------------------- | --------- | ---------------------------------------- |
@@ -172,7 +172,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 
 ---
 
-## 📡 API Reference
+## API Reference
 
 Interactive docs: `http://localhost:8000/docs`
 
@@ -234,7 +234,7 @@ Returns raw OCR output for a previously uploaded document — useful for diagnos
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 ```bash
 # All unit tests (no PaddleOCR required)
@@ -249,7 +249,7 @@ pytest tests/unit/test_score_parser.py -v
 
 ---
 
-## 🔧 Development Workflow
+## Development Workflow
 
 ### Adding a New Subject
 
@@ -285,7 +285,7 @@ PDF_RENDER_SCALE=3.0   # 300 DPI
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 
 ### Production (`requirements.txt`)
 
@@ -307,7 +307,7 @@ PDF_RENDER_SCALE=3.0   # 300 DPI
 
 ---
 
-## 📝 Notes
+## Notes
 
 - PaddleOCR downloads model weights on first use (~500MB). Ensure internet access on first run.
 - The `uploads/` directory is git-ignored. Keep test files in `tests/fixtures/sample_reports/`.

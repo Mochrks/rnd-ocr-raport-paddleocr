@@ -7,10 +7,11 @@ Rules for this file:
 - No business logic.
 - No OCR processing.
 - No data transformation beyond serializing Pydantic models.
-- Only: receive HTTP request → call use case → return response.
+- Only: receive HTTP request → call use case / worker → return response.
 
-Endpoints (unchanged from original):
+Endpoints:
   POST /api/v1/academic/report/upload
+  GET  /api/v1/academic/report/status/{documentId}
   GET  /api/v1/academic/report/{documentId}/debug
 """
 
@@ -20,14 +21,15 @@ import logging
 import os
 import uuid
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
-from app.application.ocr_use_case import run_ocr_pipeline
+from app.api.deps import get_document_store
 from app.core.config import settings
 from app.core.exceptions import DocumentNotFoundError, UnsupportedFileTypeError
-from app.infrastructure.storage.document_store import document_store
-from app.schemas.ocr_schemas import OCRResultResponse
+from app.infrastructure.storage.base import BaseDocumentStore
+from app.schemas.ocr_schemas import OCRResultResponse, OCRUploadResponse
 from app.services.ocr_orchestrator import debug_ocr_raw_text
+from app.application.ocr_use_case import run_ocr_pipeline
 from app.services.response_builder import (
     build_attendance_response,
     build_personality_response,
@@ -41,16 +43,18 @@ router = APIRouter()
 os.makedirs(settings.upload_dir, exist_ok=True)
 
 
-@router.post("/report/upload", response_model=OCRResultResponse)
-async def upload_report(file: UploadFile = File(...)):
+@router.post("/report/upload", response_model=OCRResultResponse, status_code=200)
+async def upload_report(
+    file: UploadFile = File(...),
+    document_store: BaseDocumentStore = Depends(get_document_store),
+):
     """
-    Upload a report card image or PDF and extract academic data via OCR.
+    Upload a report card image or PDF and run OCR processing synchronously.
 
     Supported formats: PNG, JPG, JPEG, PDF.
 
     Returns:
-        OCRResultResponse with subjects, personality, attendance, accuracy,
-        processing time, and document ID.
+        Full OCRResultResponse with extracted data immediately.
     """
     filename = file.filename or "unknown.png"
     ext = os.path.splitext(filename.lower())[1]
@@ -59,7 +63,7 @@ async def upload_report(file: UploadFile = File(...)):
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported file type: '{filename}'. "
-                   f"Allowed: {', '.join(settings.allowed_extensions)}",
+            f"Allowed: {', '.join(settings.allowed_extensions)}",
         )
 
     doc_id = f"DOC{uuid.uuid4().hex[:8].upper()}"
@@ -73,16 +77,50 @@ async def upload_report(file: UploadFile = File(...)):
     # Register the document before processing
     document_store.create(doc_id, file_path)
 
-    # Run the OCR pipeline (synchronous for now)
-    run_ocr_pipeline(doc_id, file_path)
+    # Run the OCR pipeline synchronously
+    try:
+        run_ocr_pipeline(doc_id, file_path)
+    except Exception as e:
+        logger.error(f"OCR Pipeline failed: {e}")
+        # The pipeline should have marked the document as FAILED in the store.
+        pass
 
-    # Read back the result
+    # Retrieve the finished record
     record = document_store.get(doc_id)
-    if record is None:
-        raise HTTPException(status_code=500, detail="Document record lost after processing.")
+    if not record:
+        raise HTTPException(status_code=500, detail="Document record lost.")
+        
+    if record.status == "FAILED":
+        raise HTTPException(status_code=500, detail="OCR extraction failed.")
 
-    personality_resp = build_personality_response(record.personality)
-    attendance_resp = build_attendance_response(record.attendance)
+    personality_resp = build_personality_response(record.personality) if record.personality else None
+    attendance_resp = build_attendance_response(record.attendance) if record.attendance else None
+
+    return OCRResultResponse(
+        documentId=record.id,
+        status=record.status,
+        accuracy=record.accuracy,
+        processingTime=record.processing_time,
+        subjects=record.extracted_data,
+        personality=personality_resp,
+        attendance=attendance_resp,
+    )
+
+
+@router.get("/report/status/{documentId}", response_model=OCRResultResponse)
+async def get_report_status(
+    documentId: str,
+    document_store: BaseDocumentStore = Depends(get_document_store),
+):
+    """
+    Check the status and get the result of a processed document.
+    """
+    record = document_store.get(documentId)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    personality_resp = build_personality_response(record.personality) if record.personality else None
+    attendance_resp = build_attendance_response(record.attendance) if record.attendance else None
 
     return OCRResultResponse(
         documentId=record.id,
@@ -96,7 +134,10 @@ async def upload_report(file: UploadFile = File(...)):
 
 
 @router.get("/report/{documentId}/debug")
-async def debug_ocr(documentId: str):
+async def debug_ocr(
+    documentId: str,
+    document_store: BaseDocumentStore = Depends(get_document_store),
+):
     """
     Debug endpoint — return raw PaddleOCR text, bounding boxes, detected rows,
     and column layout for a previously uploaded document.

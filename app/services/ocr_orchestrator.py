@@ -76,10 +76,14 @@ def perform_ocr_and_extract_full(
 
 def _process_pdf(pdf_path: str, master_subjects: List[Dict]) -> Dict:
     """Process a PDF by converting pages to images and merging results."""
+    import time as _time
+
     all_subjects: List[Dict] = []
     personality = None
     attendance = None
     seen_ids: set = set()
+
+    t0 = _time.perf_counter()
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         try:
@@ -92,7 +96,12 @@ def _process_pdf(pdf_path: str, master_subjects: List[Dict]) -> Dict:
             logger.error("No images extracted from PDF")
             return {"subjects": [], "personality": None, "attendance": None}
 
-        for img_path in image_paths:
+        t1 = _time.perf_counter()
+        logger.info(f"  ⏱ PDF → {len(image_paths)} pages in {t1 - t0:.2f}s")
+
+        # Process pages sequentially. 
+        # (PaddlePaddle C++ inference is not thread-safe for a singleton engine)
+        for idx, img_path in enumerate(image_paths):
             try:
                 result = _process_single_image(img_path, master_subjects)
                 for subj in result.get("subjects", []):
@@ -104,8 +113,10 @@ def _process_pdf(pdf_path: str, master_subjects: List[Dict]) -> Dict:
                 if attendance is None and result.get("attendance"):
                     attendance = result["attendance"]
             except Exception as exc:
-                logger.warning(f"Error processing PDF page {img_path}: {exc}")
-        # Temp directory (and all page images inside) cleaned up automatically
+                logger.warning(f"Error processing PDF page {idx}: {exc}")
+
+    t2 = _time.perf_counter()
+    logger.info(f"  ⏱ PDF total: {t2 - t0:.2f}s ({len(image_paths)} pages)")
 
     return {"subjects": all_subjects, "personality": personality, "attendance": attendance}
 
