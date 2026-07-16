@@ -10,8 +10,9 @@ from app.infrastructure.storage.redis_store import RedisDocumentStore
 def get_document_store() -> BaseDocumentStore:
     """
     Dependency provider for the document store.
-    Uses Redis if REDIS_URL is configured, otherwise falls back to InMemory.
+    Uses Redis if REDIS_URL is configured and non-empty,
+    otherwise falls back to InMemory.
     """
-    if settings.redis_url:
+    if settings.redis_url and settings.redis_url.strip():
         return RedisDocumentStore(redis_url=settings.redis_url)
     return InMemoryDocumentStore()

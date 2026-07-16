@@ -1,10 +1,11 @@
 """
 app/api/v1/router.py
 =====================
-APIRouter for API version 1. Registers all v1 endpoint routers.
+APIRouter untuk API versi 1.
 
-Adding a new feature to v1? Just import its router here and add
-a single include_router() call — no other file needs to change.
+Endpoints:
+  POST /api/v1/ocr/paddle                    — Upload + proses OCR PaddleOCR
+  GET  /api/v1/ocr/paddle/debug/{documentId} — Raw OCR debug output
 """
 
 from __future__ import annotations
@@ -13,7 +14,5 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints.ocr import router as ocr_router
 
-# All v1 routes share the /api/v1/academic prefix
-router = APIRouter(prefix="/api/v1/academic")
-
+router = APIRouter(prefix="/api/v1/ocr")
 router.include_router(ocr_router)

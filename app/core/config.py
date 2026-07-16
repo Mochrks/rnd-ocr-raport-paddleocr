@@ -2,10 +2,13 @@
 app/core/config.py
 ==================
 Centralized application configuration using Pydantic Settings.
-All values can be overridden via environment variables or a .env file.
+All values are loaded from environment variables / .env file.
+No hardcoded defaults — every setting must be explicitly provided.
 """
 
 from __future__ import annotations
+
+from typing import Optional
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -13,65 +16,54 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """
-    Application settings loaded from environment variables / .env file.
-    All settings have sensible defaults so the app works out-of-the-box.
+    Application settings loaded strictly from environment variables or .env file.
+    All fields are required — the app will fail on startup if any value is missing.
     """
 
     # ── Application ────────────────────────────────────────────────────────
-    app_title: str = "Doc Report OCR Service (PaddleOCR)"
-    app_description: str = (
-        "REST API for OCR scanning using PaddleOCR — "
-        "supports digital and handwritten Indonesian report cards."
-    )
-    app_version: str = "2.0.0"
-    debug: bool = False
+    app_title: str
+    app_description: str
+    app_version: str
+    debug: bool
 
     # ── CORS ───────────────────────────────────────────────────────────────
-    cors_origins: list[str] = ["*"]
-    cors_allow_credentials: bool = True
-    cors_allow_methods: list[str] = ["*"]
-    cors_allow_headers: list[str] = ["*"]
+    cors_origins: list[str]
+    cors_allow_credentials: bool
+    cors_allow_methods: list[str]
+    cors_allow_headers: list[str]
 
     # ── File Upload ────────────────────────────────────────────────────────
-    upload_dir: str = "uploads"
-    max_upload_size_mb: int = 20
-    allowed_extensions: list[str] = [".png", ".jpg", ".jpeg", ".pdf"]
+    upload_dir: str
+    max_upload_size_mb: int
+    allowed_extensions: list[str]
 
     # ── OCR Engine ─────────────────────────────────────────────────────────
-    ocr_lang: str = "en"
-    ocr_det_thresh: float = 0.3
-    ocr_box_thresh: float = 0.4
-    ocr_use_textline_orientation: bool = True
-    # Set to True to initialize OCR engines at server startup (eliminates
-    # first-request cold start but adds ~5–15s to boot time).
-    ocr_warmup_on_startup: bool = False
-    # Performance: enable Intel MKLDNN acceleration for CPU inference
-    ocr_use_mkldnn: bool = True
-    # Number of CPU threads for PaddlePaddle inference
-    ocr_cpu_threads: int = 4
+    ocr_lang: str
+    ocr_det_thresh: float
+    ocr_box_thresh: float
+    ocr_use_textline_orientation: bool
+    ocr_warmup_on_startup: bool
+    ocr_use_mkldnn: bool
+    ocr_cpu_threads: int
+    ocr_use_gpu: bool
 
     # ── Image Processing ───────────────────────────────────────────────────
-    # Set False to skip denoising for high-quality digital PDFs
-    preprocessing_denoise_enabled: bool = True
-    # DPI multiplier when rendering PDF pages to images
-    pdf_render_scale: float = 1.5
-    # Maximum image width (px) — images wider than this are downscaled
-    image_max_width: int = 1200
-    # Maximum total pixel count — images larger are downscaled proportionally
-    image_max_pixels: int = 2_000_000
+    preprocessing_denoise_enabled: bool
+    pdf_render_scale: float
+    image_max_width: int
+    image_max_pixels: int
 
     # ── Subject Matching ───────────────────────────────────────────────────
-    fuzzy_match_threshold: int = 70
-    y_cluster_tolerance: int = 20
-    score_zone_fallback_ratio: float = 0.35
+    fuzzy_match_threshold: int
+    y_cluster_tolerance: int
+    score_zone_fallback_ratio: float
 
     # ── Redis / Celery Task Queue ──────────────────────────────────────────
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: Optional[str] = None
 
     # ── Logging ────────────────────────────────────────────────────────────
-    log_level: str = "INFO"
-    # If set, logs are also written to this file path
-    log_file: str | None = None
+    log_level: str
+    log_file: Optional[str] = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -90,5 +82,5 @@ class Settings(BaseSettings):
         return upper
 
 
-# Module-level singleton — import this everywhere instead of instantiating Settings()
+# Module-level singleton — import this everywhere
 settings = Settings()

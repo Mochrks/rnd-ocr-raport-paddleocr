@@ -45,7 +45,6 @@ async def lifespan(app: FastAPI):
     Startup: configure logging, optionally warm up OCR engines.
     Shutdown: log graceful exit.
     """
-    # Apply logging configuration before anything else
     configure_logging()
 
     import logging
@@ -60,7 +59,7 @@ async def lifespan(app: FastAPI):
         startup_log.info("OCR warm-up requested — initializing engines at startup...")
         warmup_engines()
 
-    yield  # Application runs here
+    yield
 
     startup_log.info("Shutting down OCR service. Goodbye.")
 
