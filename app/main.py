@@ -22,7 +22,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1.router import router as v1_router
+from app.api.v1.router import combined_router as v1_router
 from app.core.config import settings
 from app.core.exceptions import (
     DocumentNotFoundError,
@@ -31,6 +31,11 @@ from app.core.exceptions import (
     OCRProcessingError,
     PDFConversionError,
     UnsupportedFileTypeError,
+    AIServiceUnavailableError,
+    AIRequestTimeoutError,
+    AIAuthorizationError,
+    AIForbiddenError,
+    AIInvalidResponseError,
 )
 from app.core.logging import configure_logging
 
@@ -118,6 +123,33 @@ async def ocr_error_handler(request: Request, exc: OCRProcessingError):
 @app.exception_handler(PDFConversionError)
 async def pdf_error_handler(request: Request, exc: PDFConversionError):
     return JSONResponse(status_code=500, content={"detail": str(exc)})
+
+
+# ── AI Vision Exception Handlers ───────────────────────────────────────────
+
+@app.exception_handler(AIAuthorizationError)
+async def ai_auth_error_handler(request: Request, exc: AIAuthorizationError):
+    return JSONResponse(status_code=401, content={"detail": str(exc)})
+
+
+@app.exception_handler(AIForbiddenError)
+async def ai_forbidden_error_handler(request: Request, exc: AIForbiddenError):
+    return JSONResponse(status_code=403, content={"detail": str(exc)})
+
+
+@app.exception_handler(AIInvalidResponseError)
+async def ai_invalid_response_handler(request: Request, exc: AIInvalidResponseError):
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+
+@app.exception_handler(AIServiceUnavailableError)
+async def ai_unavailable_handler(request: Request, exc: AIServiceUnavailableError):
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+
+@app.exception_handler(AIRequestTimeoutError)
+async def ai_timeout_handler(request: Request, exc: AIRequestTimeoutError):
+    return JSONResponse(status_code=504, content={"detail": str(exc)})
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────

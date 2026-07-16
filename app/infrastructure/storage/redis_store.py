@@ -13,7 +13,9 @@ class RedisDocumentStore(BaseDocumentStore):
     """
 
     def __init__(self, redis_url: str) -> None:
-        self.redis_client = redis.Redis.from_url(redis_url, decode_responses=True)
+        self.redis_client = redis.Redis.from_url(
+            redis_url, decode_responses=True, protocol=2
+        )
         self.prefix = "ocr_doc:"
 
     def _get_key(self, document_id: str) -> str:

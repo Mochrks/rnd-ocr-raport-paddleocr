@@ -43,7 +43,7 @@ router = APIRouter()
 os.makedirs(settings.upload_dir, exist_ok=True)
 
 
-@router.post("/report/upload", response_model=OCRResultResponse, status_code=200)
+@router.post("/report/upload", response_model=OCRResultResponse, status_code=200, include_in_schema=False)
 async def upload_report(
     file: UploadFile = File(...),
     document_store: BaseDocumentStore = Depends(get_document_store),
@@ -107,7 +107,7 @@ async def upload_report(
     )
 
 
-@router.get("/report/status/{documentId}", response_model=OCRResultResponse)
+@router.get("/report/status/{documentId}", response_model=OCRResultResponse, include_in_schema=False)
 async def get_report_status(
     documentId: str,
     document_store: BaseDocumentStore = Depends(get_document_store),
@@ -133,7 +133,7 @@ async def get_report_status(
     )
 
 
-@router.get("/report/{documentId}/debug")
+@router.get("/report/{documentId}/debug", include_in_schema=False)
 async def debug_ocr(
     documentId: str,
     document_store: BaseDocumentStore = Depends(get_document_store),
