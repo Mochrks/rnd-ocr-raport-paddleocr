@@ -18,6 +18,7 @@ ENV/
 
 # ─── Environment Variables ────────────────────────
 .env
+.env.paddle
 # Keep .env.example in version control
 
 # ─── IDE / Editor ─────────────────────────────────
