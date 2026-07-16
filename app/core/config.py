@@ -1,3 +1,10 @@
+"""
+app/core/config.py
+==================
+Centralized application configuration using Pydantic Settings.
+All values are loaded directly from .env.paddle — no hardcoded defaults.
+"""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -45,26 +52,8 @@ class Settings(BaseSettings):
     y_cluster_tolerance: int
     score_zone_fallback_ratio: float
 
-    # Redis
+    # Redis (optional)
     redis_url: Optional[str] = None
-
-    # AI Vision Service (Ollama/internal)
-    ai_host: str
-    ai_api_key: str
-    deepseek_endpoint: str
-    qwen_endpoint: str
-    deepseek_model: str
-    qwen_model: str
-    request_timeout: int
-    max_retry: int
-
-    # Gemini AI Vision
-    gemini_api_key: Optional[str] = None
-    gemini_model: Optional[str] = None
-
-    # Groq AI Vision
-    groq_api_key: Optional[str] = None
-    groq_model: Optional[str] = None
 
     # Logging
     log_level: str
