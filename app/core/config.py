@@ -69,6 +69,13 @@ class Settings(BaseSettings):
     # ── Redis / Celery Task Queue ──────────────────────────────────────────
     redis_url: Optional[str] = None
 
+    # ── PostgreSQL Database (for dynamic flags) ────────────────────────────
+    db_host: str = "127.0.0.1"
+    db_port: int = 5432
+    db_name: str = "postgres"
+    db_user: str = "postgres"
+    db_password: str = ""
+
     # ── Logging ────────────────────────────────────────────────────────────
     log_level: str
     log_file: Optional[str] = None

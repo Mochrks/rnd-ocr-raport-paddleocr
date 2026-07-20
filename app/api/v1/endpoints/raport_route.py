@@ -59,6 +59,12 @@ async def raport_ocr(
     ),
     document_store: BaseDocumentStore = Depends(get_document_store),
 ) -> OCRResultResponse:
+    from app.infrastructure.data.db_client import get_use_ai_ocr_flag
+    from app.api.v1.endpoints.ai_route import _handle_ai_raport_upload
+    
+    use_ai = await get_use_ai_ocr_flag()
+    if use_ai:
+        return await _handle_ai_raport_upload(file, "qwen", document_store)
     """
     Upload raport dan ekstrak data menggunakan PaddleOCR secara sinkronus.
 
