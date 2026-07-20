@@ -1,9 +1,11 @@
 """
 app/api/v1/router.py
 =====================
-APIRouter for API version 1 — PaddleOCR branch (dev-paddle).
+APIRouter untuk API versi 1.
 
-Single endpoint: POST /api/v1/ocr/paddle
+Endpoints:
+  POST /api/v1/ocr/paddle                    — Upload + proses OCR PaddleOCR
+  GET  /api/v1/ocr/paddle/debug/{documentId} — Raw OCR debug output
 """
 
 from __future__ import annotations
