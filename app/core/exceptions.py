@@ -84,3 +84,70 @@ class PDFConversionError(RuntimeError):
         super().__init__(
             f"Could not convert PDF '{pdf_path}' to images: {reason}"
         )
+
+
+# ── AI Vision Exceptions ────────────────────────────────────────────────────
+
+class AIServiceUnavailableError(RuntimeError):
+    """
+    Raised when the internal AI service cannot be reached after all retries.
+    Maps to HTTP 503 Service Unavailable.
+    """
+
+    def __init__(self, engine: str, reason: str = "") -> None:
+        msg = f"AI service '{engine}' is unavailable."
+        if reason:
+            msg += f" Reason: {reason}"
+        super().__init__(msg)
+
+
+class AIRequestTimeoutError(RuntimeError):
+    """
+    Raised when a request to the AI service exceeds the configured timeout.
+    Maps to HTTP 504 Gateway Timeout.
+    """
+
+    def __init__(self, engine: str, timeout_s: int) -> None:
+        super().__init__(
+            f"AI service '{engine}' did not respond within {timeout_s}s."
+        )
+
+
+class AIAuthorizationError(RuntimeError):
+    """
+    Raised when the AI service returns 401 Unauthorized.
+    Maps to HTTP 401 Unauthorized.
+    """
+
+    def __init__(self, engine: str) -> None:
+        super().__init__(
+            f"Authorization failed for AI service '{engine}'. "
+            "Check AI_API_KEY environment variable."
+        )
+
+
+class AIForbiddenError(RuntimeError):
+    """
+    Raised when the AI service returns 403 Forbidden.
+    Maps to HTTP 403 Forbidden.
+    """
+
+    def __init__(self, engine: str) -> None:
+        super().__init__(
+            f"API key rejected by AI service '{engine}'. "
+            "The key may be invalid or expired."
+        )
+
+
+class AIInvalidResponseError(ValueError):
+    """
+    Raised when the AI service returns a response that cannot be parsed
+    into the expected structured JSON format.
+    Maps to HTTP 422 Unprocessable Entity.
+    """
+
+    def __init__(self, engine: str, detail: str = "") -> None:
+        msg = f"AI service '{engine}' returned an invalid or unparseable response."
+        if detail:
+            msg += f" Detail: {detail}"
+        super().__init__(msg)
