@@ -33,22 +33,31 @@ async def get_use_ai_ocr_flag() -> bool:
         )
     except Exception as e:
         logger.warning(f"DB Connection failed: {e}. Fallback to manual OCR (use_ai_ocr=False)")
+        logger.info("OCR Mode: Using Manual PaddleOCR Model")
         return False
 
     try:
-        query = "SELECT use_ai_ocr FROM global_configuration LIMIT 1;"
+        query = "SELECT use_ai_ocr FROM global_configurations LIMIT 1;"
         row = await conn.fetchrow(query)
         if row is not None:
             # Assumes column is boolean
-            return bool(row["use_ai_ocr"])
+            use_ai = bool(row["use_ai_ocr"])
+            if use_ai:
+                logger.info("OCR Mode: Using AI Model")
+            else:
+                logger.info("OCR Mode: Using Manual PaddleOCR Model")
+            return use_ai
         else:
-            logger.warning("global_configuration table is empty. Fallback to manual OCR (use_ai_ocr=False)")
+            logger.warning("global_configurations table is empty. Fallback to manual OCR (use_ai_ocr=False)")
+            logger.info("OCR Mode: Using Manual PaddleOCR Model")
             return False
     except PostgresError as e:
         logger.warning(f"DB Query failed (maybe table doesn't exist?): {e}. Fallback to manual OCR")
+        logger.info("OCR Mode: Using Manual PaddleOCR Model")
         return False
     except Exception as e:
         logger.warning(f"Unexpected error fetching use_ai_ocr: {e}. Fallback to manual OCR")
+        logger.info("OCR Mode: Using Manual PaddleOCR Model")
         return False
     finally:
         await conn.close()
