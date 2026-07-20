@@ -110,7 +110,7 @@ class BaseAIClient(ABC):
 
     # ── Public API ────────────────────────────────────────────────────────
 
-    async def run_ocr(self, image_path: str) -> str:
+    async def run_ocr(self, image_path: str, doc_type: str = "raport") -> str:
         """
         Send an image to the AI service for OCR extraction.
 
@@ -119,6 +119,7 @@ class BaseAIClient(ABC):
 
         Args:
             image_path: Absolute path to the image file (PNG/JPG).
+            doc_type:   Document type (e.g. "raport", "ktp") for prompt selection.
 
         Returns:
             Raw text response from the AI model (expected to be valid JSON).
@@ -134,7 +135,7 @@ class BaseAIClient(ABC):
         file_size = os.path.getsize(image_path) if os.path.exists(image_path) else 0
 
         logger.info(
-            f"[{self.engine_name}] Starting OCR | "
+            f"[{self.engine_name}] Starting OCR ({doc_type}) | "
             f"file={os.path.basename(image_path)} | "
             f"size={file_size / 1024:.1f}KB"
         )
@@ -144,7 +145,7 @@ class BaseAIClient(ABC):
 
         # Build vision messages (system + user with embedded image)
         from app.services.ai_prompt_builder import build_vision_messages
-        messages = build_vision_messages(image_b64, mime_type)
+        messages = build_vision_messages(image_b64, mime_type, doc_type=doc_type)
 
         payload = self._build_request_payload(messages)
 

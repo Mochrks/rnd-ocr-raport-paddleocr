@@ -71,9 +71,20 @@ def _assign_without_kkm_header(
     candidates: List[Dict], x_spread: float
 ) -> Tuple[Optional[float], Optional[float]]:
     """Assign when no KKM column header was detected."""
-    # Rule: If there's no KKM column detected, never assign a KKM score.
     if len(candidates) == 1:
         return None, candidates[0]["value"]
+
+    # Rule 3: has_kkm=False + 2+ candidates with X spread > 80px -> infer KKM from left
+    if x_spread > _KKM_INFER_X_SPREAD:
+        sorted_x = sorted(candidates, key=lambda c: c["x"])
+        kkm_val = sorted_x[0]["value"]
+        score_val = sorted_x[-1]["value"]
+        
+        # Rule 5 (implicit): sanity check, KKM shouldn't exceed score + 5
+        if kkm_val > score_val + 5:
+            return None, score_val
+            
+        return kkm_val, score_val
 
     # Take the maximum value as the score
     best = max(candidates, key=lambda c: c["value"])

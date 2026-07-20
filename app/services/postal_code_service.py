@@ -14,6 +14,7 @@ class PostalCodeService:
         csv_path = (
             Path(__file__)
             .parent.parent
+            / "infrastructure"
             / "data"
             / "postal_code_data.csv"
         )

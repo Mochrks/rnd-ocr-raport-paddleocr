@@ -58,6 +58,14 @@ class Settings(BaseSettings):
     y_cluster_tolerance: int
     score_zone_fallback_ratio: float
 
+    # ── AI Models ──────────────────────────────────────────────────────────
+    ai_host: str
+    ai_api_key: str
+    qwen_endpoint: str
+    qwen_model: str
+    request_timeout: int
+    max_retry: int
+
     # ── Redis / Celery Task Queue ──────────────────────────────────────────
     redis_url: Optional[str] = None
 

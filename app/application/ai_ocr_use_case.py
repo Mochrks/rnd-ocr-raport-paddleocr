@@ -34,9 +34,6 @@ from app.core.exceptions import AIInvalidResponseError
 from app.core.logging import PhaseLogger
 from app.domain.ai_vision_dto import AIVisionRawResponse
 from app.infrastructure.ai.base_client import BaseAIClient
-from app.infrastructure.ai.deepseek_client import DeepSeekClient
-from app.infrastructure.ai.gemini_client import GeminiClient
-from app.infrastructure.ai.groq_client import GroqClient
 from app.infrastructure.ai.qwen_client import QwenClient
 from app.infrastructure.ocr.pdf_converter import convert_pdf_to_images
 from app.services.ai_response_mapper import map_ai_response_to_pipeline_dict
@@ -60,15 +57,10 @@ def get_ai_client(engine: str) -> BaseAIClient:
         ValueError: If the engine name is not recognized.
     """
     engine_lower = engine.lower()
-    if engine_lower == "deepseek":
-        return DeepSeekClient()
     if engine_lower == "qwen":
+        from app.infrastructure.ai.qwen_client import QwenClient
         return QwenClient()
-    if engine_lower == "gemini":
-        return GeminiClient()
-    if engine_lower == "groq":
-        return GroqClient()
-    raise ValueError(f"Unknown AI engine: '{engine}'. Valid: deepseek, qwen, gemini, groq")
+    raise ValueError(f"Unknown AI engine: '{engine}'. Valid: qwen")
 
 
 # ── Public API ─────────────────────────────────────────────────────────────
@@ -130,6 +122,55 @@ async def run_ai_ocr_pipeline(
         logger.error(
             f"[{document_id}] ❌ AI Pipeline [{engine}] FAILED | "
             f"elapsed={processing_time}s | error={exc}",
+            exc_info=True,
+        )
+        raise
+
+
+async def run_generic_ai_ocr(
+    file_path: str,
+    engine: str,
+    doc_type: str,
+) -> Dict[str, Any]:
+    """
+    Execute a generic AI OCR extraction for KTP, KK, Akta, or KP.
+    Returns the parsed dictionary directly.
+    """
+    start_time = time.perf_counter()
+    client = get_ai_client(engine)
+
+    try:
+        raw_text = await client.run_ocr(file_path, doc_type=doc_type)
+
+        # Basic JSON parsing
+        import re
+        cleaned = re.sub(r"```(?:json)?\s*", "", raw_text, flags=re.IGNORECASE).strip()
+        cleaned = re.sub(r"```\s*$", "", cleaned).strip()
+
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise AIInvalidResponseError(
+                client.engine_name,
+                f"No valid JSON object found in response. "
+                f"First 200 chars: {cleaned[:200]!r}",
+            )
+
+        json_str = cleaned[start : end + 1]
+        
+        import json
+        parsed_dict = json.loads(json_str)
+
+        elapsed = round(time.perf_counter() - start_time, 2)
+        logger.info(
+            f"[{client.engine_name}] Generic AI OCR ({doc_type}) complete | "
+            f"elapsed={elapsed}s"
+        )
+        return parsed_dict
+
+    except Exception as exc:
+        logger.error(
+            f"[{client.engine_name}] Generic AI OCR ({doc_type}) FAILED | error={exc}",
             exc_info=True,
         )
         raise
