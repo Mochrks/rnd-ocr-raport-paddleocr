@@ -4,8 +4,7 @@ app/api/v1/endpoints/ocr.py
 HTTP handlers untuk OCR report card.
 
 Endpoints:
-  POST /api/v1/ocr/paddle                      — Upload + proses OCR, langsung return hasil
-  GET  /api/v1/ocr/paddle/debug/{documentId}   — Raw OCR output untuk diagnosa
+  POST /api/v1/ocr/raport                      — Upload + proses OCR, langsung return hasil
 
 Rules:
 - No business logic.
@@ -27,7 +26,6 @@ from app.application.ocr_use_case import run_ocr_pipeline
 from app.core.config import settings
 from app.infrastructure.storage.base import BaseDocumentStore
 from app.schemas.ocr_schemas import OCRResultResponse
-from app.services.ocr_orchestrator import debug_ocr_raw_text
 from app.services.response_builder import (
     build_attendance_response,
     build_personality_response,
@@ -41,20 +39,20 @@ router = APIRouter()
 os.makedirs(settings.upload_dir, exist_ok=True)
 
 
-# ── POST /paddle ───────────────────────────────────────────────────────────
+# ── POST /raport ───────────────────────────────────────────────────────────
 
 @router.post(
-    "/paddle",
+    "/raport",
     response_model=OCRResultResponse,
     status_code=200,
-    summary="OCR via PaddleOCR",
+    summary="OCR Engine Paddle",
     description=(
         "Upload gambar atau PDF raport sekolah Indonesia. "
         "Diproses menggunakan PaddleOCR dan langsung mengembalikan hasil ekstraksi."
     ),
-    tags=["OCR"],
+    tags=["OCR Paddle"],
 )
-async def paddle_ocr(
+async def raport_ocr(
     file: UploadFile = File(
         ...,
         description="File raport: PDF, PNG, JPG, atau JPEG.",
@@ -140,43 +138,3 @@ async def paddle_ocr(
         personality=personality_resp,
         attendance=attendance_resp,
     )
-
-
-# ── GET /paddle/debug/{documentId} ────────────────────────────────────────
-
-@router.get(
-    "/paddle/debug/{documentId}",
-    summary="Debug raw OCR output",
-    description=(
-        "Mengembalikan raw output PaddleOCR untuk dokumen yang sudah diproses. "
-        "Berguna untuk diagnosa hasil ekstraksi."
-    ),
-    tags=["OCR"],
-    include_in_schema=True,
-)
-async def debug_paddle_ocr(
-    documentId: str,
-    document_store: BaseDocumentStore = Depends(get_document_store),
-):
-    """
-    Debug endpoint — raw OCR text, bounding boxes, detected rows, dan column layout
-    untuk dokumen yang sudah diupload sebelumnya.
-
-    Args:
-        documentId: Document ID yang dikembalikan oleh POST /paddle.
-    """
-    record = document_store.get(documentId)
-    if record is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Document tidak ditemukan: '{documentId}'",
-        )
-
-    image_path = record.image_path
-    if not image_path or not os.path.exists(image_path):
-        raise HTTPException(
-            status_code=404,
-            detail="File gambar tidak ditemukan di disk.",
-        )
-
-    return debug_ocr_raw_text(image_path)

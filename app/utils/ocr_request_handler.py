@@ -6,7 +6,7 @@ from typing import Callable
 from fastapi import UploadFile, BackgroundTasks
 from app.utils.file_validator import validate_upload_file
 from app.services.ocr_service import extract_boxes_from_file
-from app.preprocess.image_preprocess import preprocess_image
+from app.services.preprocess.image_preprocess import preprocess_image
 from app.schemas.generic_response import GenericResponse, ErrorDetail
 logger = logging.getLogger(__name__)
 UPLOADS_DIR = "uploads"
