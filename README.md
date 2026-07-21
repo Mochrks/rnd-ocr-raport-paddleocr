@@ -15,7 +15,7 @@ A production-quality REST API for extracting academic data from Indonesian schoo
 <p align="center">
   <img src="https://skillicons.dev/icons?i=python,fastapi,opencv,redis,docker,git" />
 </p>
----
+
 
 ## Features
 
