@@ -246,15 +246,27 @@ def _safe_score(raw: Any) -> Optional[float]:
     Safely convert a raw value from AI to a float score.
     Delegates to parse_score() for all OCR-artefact handling.
     """
-    if raw is None:
+    def extract_first_val(v: Any) -> Any:
+        if isinstance(v, list) and len(v) > 0:
+            return extract_first_val(v[0])
+        if isinstance(v, dict):
+            # Coba ambil value pertama dari dict
+            for val in v.values():
+                return extract_first_val(val)
+        return v
+
+    extracted = extract_first_val(raw)
+    if extracted is None:
         return None
-    if isinstance(raw, (int, float)):
-        val = float(raw)
+
+    if isinstance(extracted, (int, float)):
+        val = float(extracted)
         # Scale 0–10 to 0–100
         if 0 < val <= 10 and val != int(val):
             val = round(val * 10, 1)
         return round(val, 1) if 0 <= val <= 100 else None
-    return parse_score(str(raw).strip())
+        
+    return parse_score(str(extracted).strip())
 
 
 def _safe_int(raw: Any) -> Optional[int]:

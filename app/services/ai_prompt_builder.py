@@ -63,9 +63,11 @@ Output JSON WAJIB mengikuti struktur berikut PERSIS:
 }
 
 PENTING:
+- DILARANG keras menambah key baru seperti "no", "nomor", atau mengubah nama key.
+- Array `mata_pelajaran` HANYA BOLEH berisi key: "nama", "nilai", "kkm", "predikat", "deskripsi".
 - Semua field yang tidak ditemukan di gambar -> gunakan null.
 - Nilai angka (nilai, kkm, sakit, izin, alpa) HARUS berupa number.
-- Output hanya JSON.
+- Output hanya JSON valid, tanpa teks awalan/akhiran.
 """
 
 USER_PROMPT_KTP = """\

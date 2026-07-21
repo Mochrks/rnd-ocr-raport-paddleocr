@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # ── Subject ────────────────────────────────────────────────────────────────
@@ -32,6 +32,25 @@ class AISubjectDTO(BaseModel):
     kkm: Optional[Any] = Field(None, description="KKM (angka atau null)")
     predikat: Optional[str] = Field(None, description="Predikat huruf: A/B/C/D")
     deskripsi: Optional[str] = Field(None, description="Deskripsi capaian")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_ai_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            # Normalisasi nama mata pelajaran jika AI menggunakan key lain
+            if not data.get("nama"):
+                for alt_key in ["mata_pelajaran", "mapel", "subject", "pelajaran", "name", "muatan_pelajaran"]:
+                    if data.get(alt_key):
+                        data["nama"] = str(data[alt_key])
+                        break
+            
+            # Normalisasi nilai jika AI menggunakan key lain
+            if data.get("nilai") is None:
+                for alt_key in ["nilai_akhir", "angka", "score", "nilai_pengetahuan", "pengetahuan", "capaian"]:
+                    if data.get(alt_key) is not None:
+                        data["nilai"] = data[alt_key]
+                        break
+        return data
 
 
 # ── Attendance ─────────────────────────────────────────────────────────────
@@ -82,8 +101,8 @@ class AIVisionRawResponse(BaseModel):
     mata_pelajaran: Optional[List[AISubjectDTO]] = Field(default_factory=list)
     absensi: Optional[AIAttendanceDTO] = None
     kepribadian: Optional[AIPersonalityDTO] = None
-    catatan_wali: Optional[str] = None
-    naik_kelas: Optional[str] = None
+    catatan_wali: Optional[Any] = None
+    naik_kelas: Optional[Any] = None
 
 
 # ── Token Usage (for logging) ──────────────────────────────────────────────
