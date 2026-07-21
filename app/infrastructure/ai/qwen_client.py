@@ -6,10 +6,6 @@ Qwen3-VL Vision HTTP client.
 Connects to the company's internal Qwen3-VL model server via the
 OpenAI-compatible chat completions API.
 
-Configuration (from environment):
-  AI_HOST        — base URL, e.g. http://11.11.141.1:8080
-  AI_API_KEY     — Bearer token
-  QWEN_ENDPOINT  — path, default /v1/chat/completions
 
 The model name sent in the request body is "qwen3-vl" by default.
 Override by setting QWEN_MODEL in your environment if the internal

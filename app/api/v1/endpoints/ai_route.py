@@ -130,7 +130,8 @@ async def _handle_ai_generic_upload(
     doc_type: str,
 ) -> GenericResponse:
     """
-    Handler for generic documents (KTP, KK, Akta, KP) using Qwen AI.
+    Shared handler for generic documents (KTP, KK, Akta, KP) using AI Vision.
+    Supports multiple engines: Qwen, DeepSeek/MiniCPM, etc.
     """
     filename = file.filename or "upload.png"
     ext = os.path.splitext(filename.lower())[1]

@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     ai_api_key: str
     qwen_endpoint: str
     qwen_model: str
+    minicpm_endpoint: str
+    minicpm_model: str
+    minicpm_use_prefix: bool = True  # Toggle assistant prefix injection '{' for MiniCPM
     request_timeout: int
     max_retry: int
 

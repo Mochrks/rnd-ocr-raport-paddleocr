@@ -2,7 +2,7 @@
 app/application/ai_ocr_use_case.py
 =====================================
 Application-layer use case: process an uploaded report card image using
-an AI Vision model (DeepSeek or Qwen) as the OCR engine.
+an AI Vision model (MiniCPM or Qwen) as the OCR engine.
 
 Flow:
   1. Create document record in the store
@@ -48,7 +48,7 @@ def get_ai_client(engine: str) -> BaseAIClient:
     Factory: return the appropriate AI client for the given engine name.
 
     Args:
-        engine: One of "deepseek", "qwen", "gemini", "groq" (case-insensitive).
+        engine: One of "minicpm", "qwen", "gemini", "groq" (case-insensitive).
 
     Returns:
         Instantiated AI client.
@@ -60,7 +60,10 @@ def get_ai_client(engine: str) -> BaseAIClient:
     if engine_lower == "qwen":
         from app.infrastructure.ai.qwen_client import QwenClient
         return QwenClient()
-    raise ValueError(f"Unknown AI engine: '{engine}'. Valid: qwen")
+    elif engine_lower == "minicpm":
+        from app.infrastructure.ai.minicpm_client import MinicpmClient
+        return MinicpmClient()
+    raise ValueError(f"Unknown AI engine: '{engine}'. Valid: qwen, minicpm")
 
 
 # ── Public API ─────────────────────────────────────────────────────────────
@@ -74,12 +77,12 @@ async def run_ai_ocr_pipeline(
     Execute the full AI Vision OCR pipeline for an uploaded document.
 
     This is the async entry point called by the FastAPI endpoint.
-    Uses an AI Vision model (DeepSeek or Qwen) instead of PaddleOCR.
+    Uses an AI Vision model (MiniCPM or Qwen) instead of PaddleOCR.
 
     Args:
         document_id: Document ID created before upload.
         image_path:  Path to the uploaded file on disk.
-        engine:      AI engine name: "deepseek" or "qwen".
+        engine:      AI engine name: "minicpm" or "qwen".
     """
     phase = PhaseLogger(logger, doc_id=document_id)
     start_time = time.perf_counter()
@@ -158,8 +161,36 @@ async def run_generic_ai_ocr(
 
         json_str = cleaned[start : end + 1]
         
-        import json
-        parsed_dict = json.loads(json_str)
+        import json_repair
+        
+        try:
+            parsed_dict = json_repair.repair_json(json_str, return_objects=True)
+        except Exception as exc:
+            raise AIInvalidResponseError(
+                client.engine_name,
+                f"JSON repair/decode error: {exc}. "
+                f"First 300 chars: {json_str[:300]!r}",
+            ) from exc
+
+        # Post-processing: Clean up empty rows in arrays (e.g. KK anggota_keluarga)
+        if isinstance(parsed_dict, dict):
+            for key, val in parsed_dict.items():
+                if isinstance(val, list):
+                    cleaned_list = []
+                    for item in val:
+                        if isinstance(item, dict):
+                            has_data = False
+                            for k, v in item.items():
+                                if k.lower() == "no":
+                                    continue
+                                if v and str(v).strip() not in ["", "-", "null", "None"]:
+                                    has_data = True
+                                    break
+                            if has_data:
+                                cleaned_list.append(item)
+                        else:
+                            cleaned_list.append(item)
+                    parsed_dict[key] = cleaned_list
 
         elapsed = round(time.perf_counter() - start_time, 2)
         logger.info(
@@ -284,6 +315,11 @@ async def _process_single_image(
     # Parse raw text as structured JSON
     ai_dto = _parse_ai_response(raw_text, client.engine_name)
 
+    # DEBUG: write to file to see what's happening
+    with open("debug_minicpm_output.txt", "w", encoding="utf-8") as f:
+        f.write(f"RAW TEXT:\n{raw_text}\n\n")
+        f.write(f"PARSED DTO:\n{ai_dto.model_dump_json(indent=2)}\n")
+
     # Map to unified pipeline dict
     return map_ai_response_to_pipeline_dict(ai_dto, client.engine_name)
 
@@ -333,12 +369,14 @@ def _parse_ai_response(
 
     json_str = cleaned[start : end + 1]
 
+    import json_repair
+    
     try:
-        parsed_dict = json.loads(json_str)
-    except json.JSONDecodeError as exc:
+        parsed_dict = json_repair.repair_json(json_str, return_objects=True)
+    except Exception as exc:
         raise AIInvalidResponseError(
             engine_name,
-            f"JSON decode error: {exc}. "
+            f"JSON repair/decode error: {exc}. "
             f"First 300 chars: {json_str[:300]!r}",
         ) from exc
 
