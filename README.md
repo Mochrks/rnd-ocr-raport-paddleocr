@@ -2,6 +2,19 @@
 
 A production-quality REST API for extracting academic data from Indonesian school report cards (Raport) using PaddleOCR.
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/FastAPI-Latest-009688?logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/PaddleOCR-3.x-FF6B35" />
+  <img src="https://img.shields.io/badge/OpenCV-4.x-5C3EE8?logo=opencv&logoColor=white" />
+  <img src="https://img.shields.io/badge/Pydantic-v2-E92063" />
+  <img src="https://img.shields.io/badge/Qwen3--VL-8B-7C3AED" />
+  <img src="https://img.shields.io/badge/Redis-Optional-DC382D?logo=redis&logoColor=white" />
+</p>
+
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=python,fastapi,opencv,redis,docker,git" />
+</p>
 ---
 
 ## Features
